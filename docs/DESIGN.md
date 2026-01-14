@@ -1,57 +1,88 @@
-# Microservice Auth API
-A lightweight, stateless user authentication microservice built with Spring Boot 3.1 and Spring Security 6.1+. Designed to be modular and easily pluggable into distributed systems.
-## 🔐 Why JWT?
-Traditional session-based authentication doesn’t scale well across distributed architectures. Maintaining server-side sessions becomes complex when dealing with multiple instances or regions.
+## Identity Provider & Authorization Server (IdP + AS)
 
-**JWT (JSON Web Token)** offers a scalable alternative:
-1. Stateless — no session storage required
-2. Lightweight and easy to verify
-3. Ideal for microservices and APIs
+#### Document Type
+Solution Design / Functional Architecture Document
 
-With JWT, the server issues a signed token on login. Clients include this token in each request’s header to access protected resources.
+#### Audience
+Backend engineers, reviewers, system architects
 
-## ⚙️ Tech Stack
-- Spring Boot 3.1
-- Spring Security 6.1+
-- Java 17
-- JJWT 0.12.6
-- H2 Database (in-memory)
+##
 
-## 🧩 Key Components
-1. User Registration
-- Encrypted passwords with `BCryptPasswordEncoder`
-- In-memory H2 storage
-- `POST /api/auth/register`
+### Purpose of the System
 
-2. Login Endpoint
-- Validates credentials and issues JWT
-- `POST /api/auth/login`
+The purpose of this project is to design and implement a **self-hosted Identity Provider (IdP)** combined with an **Authorization Server (AS)** that is responsible for:
 
-3. JWT Generation
-- HS512 signing algorithm
-- Uses secure 512-bit base64-encoded secret key
-- Includes claims like username, issue time, and expiration
+#### Authenticating users
 
-4. Protected Endpoint
-- `GET /api/auth/profile`
-- Requires a valid token in the header:<br/>`Authorization: Bearer <your-token>`
-- Verified via custom JwtFilter
+- Managing user credentials securely
+- Issuing cryptographically verifiable access tokens (JWT)
+- Managing long-lived user sessions using refresh tokens
+- Defining and enforcing trust for client applications requesting tokens
 
-## 🔧 JWT & Security Configuration
-**JJWT 0.12.6 Enhancements**
-- Enforces strong key sizes
-- Cleaner, builder-style API
-- No deprecated classes (e.g., DatatypeConverter)
+This system is not a business application and does not expose protected domain APIs.
+Its sole responsibility is identity and token issuance.
 
-**Spring Security 6.1 Highlights**
-- Functional, lambda-style configuration
-- Stateless setup with no session management
+##
 
-## ⚠️ Challenges Faced
-**Stricter Token Security (JJWT 0.12.6)**
-- Requires keys generated using Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey))
-- Simple strings no longer valid
+### Business Problem Statement
 
-**New Parsing API**
-- Shift from Jwts.parser() to Jwts.parserBuilder().setSigningKey(...)
-- Errors like MalformedJwtException appear if token is not securely created
+Modern applications require a centralized mechanism to:
+
+- Avoid storing user credentials in every application
+- Support stateless authentication for scalable systems
+- Enable secure session continuation without repeated logins
+- Control which applications are allowed to obtain access tokens
+
+Without a dedicated Identity Provider and Authorization Server, applications tend to:
+
+- Duplicate authentication logic
+- Handle passwords insecurely
+- Rely on server-side sessions that do not scale well
+- Lack clear trust boundaries between systems
+
+This project addresses those concerns by isolating identity and token issuance into a dedicated service.
+
+##
+
+### Scope Definition
+In Scope
+
+- User registration and authentication
+- Secure password storage and verification
+- JWT access token issuance
+- Refresh token lifecycle management (issue, rotate, revoke)
+- Client registration and trust validation
+- Cryptographic key management for token signing
+- Public key exposure via JWKS endpoint
+
+Out of Scope
+- Business/domain APIs (no Resource Server)
+- OAuth authorization code flows and redirects
+- Consent screens and SSO user experience
+- Multi-factor authentication (MFA)
+- User profile management UI
+- Social login or identity federation
+
+##
+
+### System Classification
+
+This system functions as:
+
+- **Identity Provider (IdP)** — authenticates users and manages identity data
+- **Authorization Server (AS)** — issues access and refresh tokens to trusted clients
+
+The system does not act as a Resource Server.
+
+##
+
+### High-Level Architecture
+Logical Responsibilities
+
+Responsibility | Description
+--- | ---
+Identity Management | User credentials, password hashing, account status
+Token Issuance | JWT creation, signing, expiration handling
+Session Continuity | Refresh token persistence and rotation
+Client Trust | Determines which applications may request tokens
+Key Distribution | Publishes public keys for token verification
